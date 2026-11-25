@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"armgoat/internal/app"
+	"armgoat/pkg/app"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"armgoat/internal/app"
+	"armgoat/pkg/app"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
