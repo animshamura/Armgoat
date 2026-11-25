@@ -12,7 +12,12 @@ func NewHandler(db *pgxpool.Pool) http.Handler {
 	a := &App{DB: db}
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /api/clauses/{id}", a.GetClause)
+	mux.HandleFunc("GET /api/clauses/{id}/history", a.GetClauseHistory)
 	mux.HandleFunc("GET /api/clauses/{id}/impact", a.GetClauseImpact)
+	mux.HandleFunc("PATCH /api/controls/{id}/status", a.UpdateControlStatus)
+	mux.HandleFunc("GET /api/controls/{id}/evidence", a.ListControlEvidence)
+	mux.HandleFunc("PATCH /api/evidence/{id}/verify", a.VerifyEvidence)
 	mux.HandleFunc("POST /api/clauses/{id}/amend", a.AmendRegulationClause)
 	mux.HandleFunc("POST /api/controls/{id}/evidence", a.AttachAuditEvidence)
 	mux.HandleFunc("PATCH /api/remediations/{id}/resolve", a.ResolveRemediation)

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,7 +30,8 @@ func (a *App) GetClauseImpact(w http.ResponseWriter, r *http.Request) {
 			p.code, p.title,
 			o.id, o.full_name, o.email, o.department,
 			COALESCE(ARRAY_AGG(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') AS systems,
-			COUNT(DISTINCT ae.id) AS evidence_count
+			COUNT(DISTINCT ae.id) AS evidence_count,
+			COUNT(DISTINCT ae.id) FILTER (WHERE ae.validity_status = 'STALE_NEEDS_REVIEW') AS stale_count
 		FROM clause_policy_map cpm
 		JOIN policies p ON p.id = cpm.policy_id
 		JOIN policy_control_map pcm ON pcm.policy_id = p.id
@@ -49,14 +51,14 @@ func (a *App) GetClauseImpact(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var results []ImpactedNode
+	results := make([]ImpactedNode, 0)
 	for rows.Next() {
 		var node ImpactedNode
 		if err := rows.Scan(
 			&node.ControlID, &node.ControlCode, &node.ControlTitle, &node.ComplianceStatus,
 			&node.PolicyCode, &node.PolicyTitle,
 			&node.OwnerID, &node.OwnerName, &node.OwnerEmail, &node.Department,
-			&node.AffectedSystems, &node.EvidenceCount,
+			&node.AffectedSystems, &node.EvidenceCount, &node.StaleEvidence,
 		); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -208,6 +210,11 @@ func (a *App) AttachAuditEvidence(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid payload", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(body.Title) == "" || strings.TrimSpace(body.FileURL) == "" {
+		http.Error(w, "title and file_url are required", http.StatusBadRequest)
 		return
 	}
 

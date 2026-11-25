@@ -18,6 +18,7 @@ type ImpactedNode struct {
 	Department       string    `json:"department"`
 	AffectedSystems  []string  `json:"affected_systems"`
 	EvidenceCount    int       `json:"evidence_count"`
+	StaleEvidence    int       `json:"stale_evidence_count"`
 }
 
 type ClauseChangeRequest struct {
@@ -47,4 +48,28 @@ type AuditEvidenceDTO struct {
 	SHA256Hash     string    `json:"sha256_hash"`
 	ValidityStatus string    `json:"validity_status"`
 	UploadedAt     time.Time `json:"uploaded_at"`
+}
+
+// ClauseDTO is the current state of one regulation clause.
+type ClauseDTO struct {
+	ID             uuid.UUID `json:"id"`
+	RegulationCode string    `json:"regulation_code"`
+	RegulationName string    `json:"regulation_name"`
+	ClauseNumber   string    `json:"clause_number"`
+	Title          string    `json:"title"`
+	Content        string    `json:"content"`
+	Version        int       `json:"version"`
+	Status         string    `json:"status"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// ChangeDTO is one published amendment with its remediation progress.
+type ChangeDTO struct {
+	ID              uuid.UUID `json:"id"`
+	ChangeSummary   string    `json:"change_summary"`
+	PreviousContent string    `json:"previous_content"`
+	NewContent      string    `json:"new_content"`
+	DetectedAt      time.Time `json:"detected_at"`
+	TasksTotal      int       `json:"tasks_total"`
+	TasksClosed     int       `json:"tasks_closed"`
 }

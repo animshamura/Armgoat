@@ -397,6 +397,11 @@ All paths are under `/api`. Request and response bodies are JSON. IDs are UUIDs.
 
 | Method | Path | Purpose |
 |---|---|---|
+| GET | `/clauses/{id}` | Current text, version and status of a clause |
+| GET | `/clauses/{id}/history` | Every amendment with previous and new text and task progress |
+| PATCH | `/controls/{id}/status` | Set a control to `COMPLIANT`, `IMPACTED` or `NON_COMPLIANT` (`409` if it still has open tasks and you pick compliant) |
+| GET | `/controls/{id}/evidence` | List evidence attached to a control |
+| PATCH | `/evidence/{id}/verify` | Re-verify stale evidence |
 | GET | `/clauses/{id}/impact` | Controls, policies, owners, systems and evidence counts affected by a clause |
 | POST | `/clauses/{id}/amend` | Publish an amendment and create remediation tasks |
 | POST | `/controls/{id}/evidence` | Attach audit evidence to a control |

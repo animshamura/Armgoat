@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './dashboard.css';
 import Lineage from './Lineage';
-import { ControlTable, Icon, PostureBar, StatusBadge, TaskTable } from './components';
-import type { Clause, ImpactedNode, Tab, Task } from './types';
-import { isOverdue } from './types';
+import { ControlTable, EvidenceList, HistoryList, Icon, PostureBar, StatusBadge, TaskTable } from './components';
+import type { Change, Clause, ClauseApi, Evidence, ImpactedNode, Tab, Task } from './types';
+import { STATUS_LABEL, isOverdue } from './types';
 
 const API = '/api';
 
@@ -20,18 +20,22 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'controls', label: 'Controls' },
   { id: 'remediation', label: 'Remediation' },
+  { id: 'history', label: 'History' },
 ];
 
 const PAGE_TITLE: Record<Tab, string> = {
   overview: 'Regulatory impact',
   controls: 'Controls',
   remediation: 'Remediation queue',
+  history: 'Change history',
 };
 
 export default function ImpactMapDashboard() {
   const [clause, setClause] = useState(initialClause);
   const [nodes, setNodes] = useState<ImpactedNode[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [changes, setChanges] = useState<Change[]>([]);
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [tab, setTab] = useState<Tab>('overview');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -49,11 +53,28 @@ export default function ImpactMapDashboard() {
   const load = useCallback(async () => {
     setError('');
     try {
-      const [a, b] = await Promise.all([fetch(`${API}/clauses/${clause.id}/impact`), fetch(`${API}/remediations`)]);
+      const [a, b, c, h] = await Promise.all([
+        fetch(`${API}/clauses/${clause.id}/impact`),
+        fetch(`${API}/remediations`),
+        fetch(`${API}/clauses/${clause.id}`),
+        fetch(`${API}/clauses/${clause.id}/history`),
+      ]);
       if (!a.ok) throw new Error(`Impact API returned ${a.status}`);
       if (!b.ok) throw new Error(`Remediation API returned ${b.status}`);
+      if (!c.ok) throw new Error(`Clause API returned ${c.status}`);
+      if (!h.ok) throw new Error(`History API returned ${h.status}`);
       setNodes((await a.json()) || []);
       setTasks((await b.json()) || []);
+      const cl: ClauseApi = await c.json();
+      setClause({
+        id: cl.id,
+        regulation: `${cl.regulation_code} · ${cl.regulation_name}`,
+        clause_number: cl.clause_number,
+        title: cl.title,
+        content: cl.content,
+        version: cl.version,
+      });
+      setChanges((await h.json()) || []);
       setConnected(true);
     } catch (e) {
       setConnected(false);
@@ -65,12 +86,31 @@ export default function ImpactMapDashboard() {
     load();
   }, [load]);
 
+  const loadEvidence = useCallback(async (controlId: string) => {
+    try {
+      const r = await fetch(`${API}/controls/${controlId}/evidence`);
+      if (!r.ok) throw new Error(`Evidence API returned ${r.status}`);
+      setEvidence((await r.json()) || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load evidence.');
+    }
+  }, []);
+
+  useEffect(() => {
+    setEvidence([]);
+    if (selected) loadEvidence(selected.control_id);
+  }, [selected?.control_id, loadEvidence]);
+
   useEffect(() => {
     if (!selected) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSelected(null);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selected]);
+
+  useEffect(() => {
+    setSelected((cur) => (cur ? nodes.find((n) => n.control_id === cur.control_id) ?? cur : cur));
+  }, [nodes]);
 
   const filtered = useMemo(
     () =>
@@ -106,7 +146,6 @@ export default function ImpactMapDashboard() {
         body: JSON.stringify({ new_content: amendText, change_summary: summary, due_days: dueDays }),
       });
       if (!r.ok) throw new Error(await r.text());
-      setClause((c) => ({ ...c, content: amendText, version: c.version + 1 }));
       setAmendText('');
       setSummary('');
       await load();
@@ -135,7 +174,7 @@ export default function ImpactMapDashboard() {
       if (!r.ok) throw new Error(await r.text());
       setEvidenceTitle('');
       setEvidenceUrl('');
-      await load();
+      await Promise.all([load(), loadEvidence(selected.control_id)]);
       toast('Evidence attached.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Evidence upload failed.');
@@ -159,9 +198,40 @@ export default function ImpactMapDashboard() {
     }
   }
 
+  async function setControlStatus(status: string) {
+    if (!selected || status === selected.compliance_status) return;
+    try {
+      const r = await fetch(`${API}/controls/${selected.control_id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      await load();
+      toast(`${selected.control_code} marked ${(STATUS_LABEL[status] ?? status).toLowerCase()}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Status update failed.');
+    }
+  }
+
+  async function verifyEvidence(id: string) {
+    if (!selected) return;
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/evidence/${id}/verify`, { method: 'PATCH' });
+      if (!r.ok) throw new Error(await r.text());
+      await Promise.all([load(), loadEvidence(selected.control_id)]);
+      toast('Evidence re-verified.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Verification failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function exportCSV() {
     const rows = [
-      ['Control', 'Title', 'Status', 'Policy', 'Owner', 'Department', 'Systems', 'Evidence'],
+      ['Control', 'Title', 'Status', 'Policy', 'Owner', 'Department', 'Systems', 'Evidence', 'Stale evidence'],
       ...filtered.map((n) => [
         n.control_code,
         n.control_title,
@@ -171,6 +241,7 @@ export default function ImpactMapDashboard() {
         n.department,
         n.affected_systems.join('; '),
         String(n.evidence_count),
+        String(n.stale_evidence_count),
       ]),
     ];
     const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -182,7 +253,7 @@ export default function ImpactMapDashboard() {
     URL.revokeObjectURL(url);
   }
 
-  const count = (t: Tab) => (t === 'controls' ? nodes.length : t === 'remediation' ? openTasks : null);
+  const count = (t: Tab) => (t === 'controls' ? nodes.length : t === 'remediation' ? openTasks : t === 'history' ? changes.length : null);
 
   return (
     <div className="app">
@@ -228,6 +299,7 @@ export default function ImpactMapDashboard() {
               {tab === 'overview' && 'See which policies, controls and systems a regulatory change touches, and who owns the fix.'}
               {tab === 'controls' && 'Every control mapped to this clause, with its owner, systems and evidence.'}
               {tab === 'remediation' && 'Tasks created by regulatory amendments. Update the status as work moves forward.'}
+              {tab === 'history' && 'Every amendment to this clause, with the text before and after and how much of the resulting work is done.'}
             </p>
           </div>
           <div className="page-actions">
@@ -389,6 +461,12 @@ export default function ImpactMapDashboard() {
           </section>
         )}
 
+        {tab === 'history' && (
+          <section className="panel">
+            <HistoryList changes={changes} />
+          </section>
+        )}
+
         <footer className="foot">Armgoat · Data is read live from your compliance API.</footer>
       </main>
 
@@ -405,6 +483,14 @@ export default function ImpactMapDashboard() {
               </button>
             </div>
             <StatusBadge status={selected.compliance_status} />
+            <label className="status-set">
+              Set status
+              <select value={selected.compliance_status} onChange={(e) => setControlStatus(e.target.value)}>
+                <option value="COMPLIANT">Compliant</option>
+                <option value="IMPACTED">Needs review</option>
+                <option value="NON_COMPLIANT">Non-compliant</option>
+              </select>
+            </label>
             <dl className="facts">
               <div>
                 <dt>Policy</dt>
@@ -435,6 +521,10 @@ export default function ImpactMapDashboard() {
                 </dd>
               </div>
             </dl>
+            <div className="drawer-section">
+              <h3>Evidence</h3>
+              <EvidenceList items={evidence} onVerify={verifyEvidence} busy={loading} />
+            </div>
             <form className="form" onSubmit={attach}>
               <h3>Attach evidence</h3>
               <label>

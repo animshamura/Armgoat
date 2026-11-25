@@ -243,3 +243,39 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- stale evidence, evidence list, status override ---------- */
+.stale-note { display: block; font-size: 12px; color: var(--warn); font-weight: 600; }
+.status-set { display: flex; flex-direction: column; gap: 6px; margin: 0 24px; font-weight: 600; font-size: 13px; max-width: 220px; }
+.drawer-section { padding: 16px 24px 0; border-top: 1px solid var(--line); }
+.drawer-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.muted-note { color: var(--ink-3); }
+.evidence li { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.evidence li:last-child { border-bottom: 0; }
+.evidence li b { display: block; }
+.pill { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.pill.valid { background: var(--ok-soft); color: var(--ok); }
+.pill.stale { background: var(--warn-soft); color: var(--warn); }
+.btn.small { height: 30px; padding: 0 10px; font-size: 13px; flex-shrink: 0; }
+
+/* ---------- change history ---------- */
+.history { padding: 4px 20px 8px; }
+.history > li { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.history > li:last-child { border-bottom: 0; }
+.history-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 14px; }
+.history-head h3 { font-size: 16px; font-weight: 700; margin: 6px 0 2px; }
+.history .version { padding: 1px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 12px; }
+.history-progress { min-width: 170px; font-size: 13px; color: var(--ink-2); text-align: right; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ok); }
+.diff { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.diff-col { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
+.diff-col h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+.diff-col blockquote { margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.5; }
+.diff-col.before { background: var(--bad-soft); border-color: #efc2c0; }
+.diff-col.after { background: var(--ok-soft); border-color: #bfe0cf; }
+@media (max-width: 720px) {
+  .history-head { flex-direction: column; gap: 10px; }
+  .history-progress { text-align: left; }
+  .diff { grid-template-columns: 1fr; }
+}

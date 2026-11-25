@@ -1,5 +1,5 @@
-import type { ImpactedNode, Task } from './types';
-import { STATUS_LABEL, TASK_LABEL, formatDate, isOverdue } from './types';
+import type { Change, Evidence, ImpactedNode, Task } from './types';
+import { STATUS_LABEL, TASK_LABEL, formatDate, formatDateTime, isOverdue } from './types';
 
 type IconName = 'refresh' | 'download' | 'plus' | 'close' | 'check' | 'alert' | 'logo';
 
@@ -125,7 +125,10 @@ export function ControlTable({ nodes, onSelect }: { nodes: ImpactedNode[]; onSel
                 <span className="sub">{n.department}</span>
               </td>
               <td>{n.affected_systems.join(', ') || '—'}</td>
-              <td className="num">{n.evidence_count}</td>
+              <td className="num">
+                {n.evidence_count}
+                {n.stale_evidence_count > 0 && <span className="stale-note">{n.stale_evidence_count} stale</span>}
+              </td>
               <td>
                 <StatusBadge status={n.compliance_status} />
               </td>
@@ -180,5 +183,82 @@ export function TaskTable({
         );
       })}
     </ul>
+  );
+}
+
+export function EvidenceList({
+  items,
+  onVerify,
+  busy,
+}: {
+  items: Evidence[];
+  onVerify: (id: string) => void;
+  busy: boolean;
+}) {
+  if (!items.length) return <p className="muted-note">No evidence attached yet.</p>;
+  return (
+    <ul className="evidence">
+      {items.map((e) => {
+        const stale = e.validity_status === 'STALE_NEEDS_REVIEW';
+        return (
+          <li key={e.id} className={stale ? 'stale' : ''}>
+            <div>
+              <b>{e.title}</b>
+              <span className="sub">
+                {formatDateTime(e.uploaded_at)} · <span className="code plain" title={e.sha256_hash}>{e.sha256_hash.slice(0, 12)}…</span>
+              </span>
+              <span className={`pill ${stale ? 'stale' : 'valid'}`}>{stale ? 'Stale: needs review' : 'Valid'}</span>
+            </div>
+            {stale && (
+              <button type="button" className="btn small" disabled={busy} onClick={() => onVerify(e.id)}>
+                Re-verify
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function HistoryList({ changes }: { changes: Change[] }) {
+  if (!changes.length) {
+    return <div className="empty">No amendments yet. Publish one from the Overview tab and it will be recorded here.</div>;
+  }
+  return (
+    <ol className="history">
+      {changes.map((c, i) => {
+        const pct = c.tasks_total ? Math.round((c.tasks_closed / c.tasks_total) * 100) : 100;
+        return (
+          <li key={c.id}>
+            <div className="history-head">
+              <div>
+                <span className="version">Change {changes.length - i}</span>
+                <h3>{c.change_summary}</h3>
+                <span className="sub">{formatDateTime(c.detected_at)}</span>
+              </div>
+              <div className="history-progress" aria-label={`${c.tasks_closed} of ${c.tasks_total} tasks closed`}>
+                <span>
+                  {c.tasks_closed}/{c.tasks_total} tasks closed
+                </span>
+                <div className="meter">
+                  <i style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="diff">
+              <div className="diff-col before">
+                <h4>Before</h4>
+                <blockquote>{c.previous_content}</blockquote>
+              </div>
+              <div className="diff-col after">
+                <h4>After</h4>
+                <blockquote>{c.new_content}</blockquote>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
