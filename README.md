@@ -4,7 +4,7 @@
 
 When a regulation changes, Armgoat shows which policies, controls and systems it touches, creates a remediation task for every affected control owner, and tracks the work until each control is compliant again.
 
-![Armgoat overview: the active clause, key figures and impact trace](docs/screenshots/01-overview.png)
+<p align="center"><img src="docs/screenshots/01-overview.png" alt="Armgoat overview: the active clause, key figures and impact trace" width="760"></p>
 
 ## Contents
 
@@ -80,61 +80,70 @@ Screenshots use sample data.
 
 The active clause with its version, the compliance score, how many controls need review, open and overdue tasks, and a status bar across all mapped controls.
 
-![Overview](docs/screenshots/01-overview.png)
+<p align="center"><img src="docs/screenshots/01-overview.png" alt="Overview" width="680"></p>
 
 ### Impact trace
 
 Regulation → policies → controls → systems. Control cards are colored by status, and links take the color of the control they belong to.
 
-![Impact trace](docs/screenshots/02-impact-trace.png)
+<p align="center"><img src="docs/screenshots/02-impact-trace.png" alt="Impact trace" width="680"></p>
 
 ### Impact trace with a control in focus
 
 Hovering or focusing a control fades everything else and highlights its path from the clause to the systems it runs on.
 
-![Impact trace with a control in focus](docs/screenshots/03-impact-trace-focus.png)
+<p align="center"><img src="docs/screenshots/03-impact-trace-focus.png" alt="Impact trace with a control in focus" width="680"></p>
 
 ### Control details
 
 Select any control to see its policy, owner, department, systems and evidence count, and to attach new evidence. Press Escape to close the panel.
 
-![Control details panel](docs/screenshots/04-control-details.png)
+<p align="center"><img src="docs/screenshots/04-control-details.png" alt="Control details panel" width="680"></p>
 
 ### Publish an amendment
 
 Enter a change summary, the new clause text and a due-date window. Publishing creates a task for every affected control.
 
-![Publish an amendment form](docs/screenshots/05-publish-amendment.png)
+<p align="center"><img src="docs/screenshots/05-publish-amendment.png" alt="Publish an amendment form" width="680"></p>
 
 ### Control library
 
 Every control mapped to the clause, with policy, owner, systems, evidence count and status.
 
-![Control library](docs/screenshots/06-controls.png)
+<p align="center"><img src="docs/screenshots/06-controls.png" alt="Control library" width="680"></p>
 
 ### Control library, filtered
 
 Search and status filters narrow the table. Export CSV downloads exactly what is shown.
 
-![Control library filtered to non-compliant controls](docs/screenshots/07-controls-filtered.png)
+<p align="center"><img src="docs/screenshots/07-controls-filtered.png" alt="Control library filtered to non-compliant controls" width="680"></p>
 
 ### Remediation queue
 
 Tasks created by amendments, with owner, due date and a status selector. Overdue tasks are marked in red.
 
-![Remediation queue](docs/screenshots/08-remediation.png)
+<p align="center"><img src="docs/screenshots/08-remediation.png" alt="Remediation queue" width="680"></p>
 
 ### Mobile layout
 
+<table>
+<tr>
+<td width="300"><img src="docs/screenshots/09-mobile-overview.png" alt="Mobile overview" width="280"></td>
+<td valign="middle">
+
 The same views on a phone. Tabs stay reachable and the impact trace scrolls sideways.
 
-![Mobile overview](docs/screenshots/09-mobile-overview.png)
+The header collapses to the tabs and a refresh button. Buttons span the full width, and tables scroll sideways instead of squeezing.
+
+</td>
+</tr>
+</table>
 
 ### API unreachable
 
 If the API can't be reached, the header turns red and a message names the failure. The page stays usable.
 
-![API error state](docs/screenshots/10-api-error.png)
+<p align="center"><img src="docs/screenshots/10-api-error.png" alt="API error state" width="680"></p>
 
 ---
 
