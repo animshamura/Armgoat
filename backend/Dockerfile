@@ -1,11 +1,13 @@
+# Build context is the repository root (see docker-compose.yml)
 # Stage 1: Build
 FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
 COPY go.mod ./
-COPY *.go ./
+COPY internal ./internal
+COPY backend ./backend
 RUN go mod tidy
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server ./backend
 
 # Stage 2: Runtime
 FROM alpine:3.20

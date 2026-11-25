@@ -1,4 +1,4 @@
-module compliance-map
+module armgoat
 
 go 1.22
 
