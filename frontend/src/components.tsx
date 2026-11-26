@@ -1,12 +1,40 @@
+import type { ReactNode } from 'react';
 import type { Change, Evidence, ImpactedNode, Task } from './types';
 import { STATUS_LABEL, TASK_LABEL, formatDate, formatDateTime, isOverdue } from './types';
 
-type IconName = 'refresh' | 'download' | 'plus' | 'close' | 'check' | 'alert' | 'logo';
+export type IconName =
+  | 'refresh'
+  | 'download'
+  | 'plus'
+  | 'close'
+  | 'check'
+  | 'alert'
+  | 'logo'
+  | 'overview'
+  | 'controls'
+  | 'remediation'
+  | 'history'
+  | 'search'
+  | 'inbox';
 
-export function Icon({ name }: { name: IconName }) {
+export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
+  if (name === 'logo') {
+    // A source node fanning out to two targets: the impact trace in miniature.
+    return (
+      <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect width="28" height="28" rx="7" style={{ fill: 'var(--logo-bg)' }} />
+        <g strokeWidth="1.8" strokeLinecap="round" fill="none" style={{ stroke: 'var(--logo-glyph)' }}>
+          <path d="M10.9 14c3.6 0 4.6-5.5 6.2-5.5M10.9 14c3.6 0 4.6 5.5 6.2 5.5" />
+          <circle cx="8.5" cy="14" r="2.4" style={{ fill: 'var(--logo-glyph)' }} />
+          <circle cx="19.5" cy="8.5" r="2.4" />
+          <circle cx="19.5" cy="19.5" r="2.4" />
+        </g>
+      </svg>
+    );
+  }
   const p = {
-    width: 16,
-    height: 16,
+    width: size,
+    height: size,
     viewBox: '0 0 16 16',
     fill: 'none',
     stroke: 'currentColor',
@@ -54,14 +82,92 @@ export function Icon({ name }: { name: IconName }) {
           <path d="M8 6.5v3M8 11.3v.2" />
         </svg>
       );
-    case 'logo':
+    case 'overview':
       return (
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-          <rect x="1" y="1" width="20" height="20" rx="5" fill="currentColor" />
-          <path d="M6 11h4m0 0 3-4m-3 4 3 4M13 7h3M13 15h3" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+        <svg {...p}>
+          <rect x="2" y="2" width="5" height="5" rx="1.2" />
+          <rect x="9" y="2" width="5" height="5" rx="1.2" />
+          <rect x="2" y="9" width="5" height="5" rx="1.2" />
+          <rect x="9" y="9" width="5" height="5" rx="1.2" />
+        </svg>
+      );
+    case 'controls':
+      return (
+        <svg {...p}>
+          <path d="M8 1.8 13 3.7v4.1c0 3-2.1 5.1-5 6.4-2.9-1.3-5-3.4-5-6.4V3.7L8 1.8Z" />
+          <path d="m5.8 8 1.6 1.6 3-3.2" />
+        </svg>
+      );
+    case 'remediation':
+      return (
+        <svg {...p}>
+          <rect x="3" y="2.5" width="10" height="11.5" rx="1.8" />
+          <path d="M6 2.5h4v1.6a.6.6 0 0 1-.6.6H6.6a.6.6 0 0 1-.6-.6V2.5Z" />
+          <path d="m5.6 9 1.7 1.7 3.1-3.3" />
+        </svg>
+      );
+    case 'history':
+      return (
+        <svg {...p}>
+          <circle cx="8" cy="8" r="5.8" />
+          <path d="M8 4.8V8l2.2 1.4" />
+        </svg>
+      );
+    case 'search':
+      return (
+        <svg {...p}>
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="m10.4 10.4 3.1 3.1" />
+        </svg>
+      );
+    case 'inbox':
+      return (
+        <svg {...p}>
+          <path d="M2 9.5 3.8 3.5h8.4L14 9.5v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3Z" />
+          <path d="M2 9.5h3.6l.9 1.5h3l.9-1.5H14" />
         </svg>
       );
   }
+}
+
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
+}
+
+export function Avatar({ name }: { name: string }) {
+  return (
+    <span className="avatar sm" aria-hidden="true">
+      {initials(name)}
+    </span>
+  );
+}
+
+export function Skeleton({ height = 120 }: { height?: number }) {
+  return <div className="skeleton" style={{ height }} aria-hidden="true" />;
+}
+
+export function EmptyState({
+  icon = 'inbox',
+  title,
+  children,
+  action,
+}: {
+  icon?: IconName;
+  title: string;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty-state">
+      <span className="empty-ico">
+        <Icon name={icon} size={18} />
+      </span>
+      <b>{title}</b>
+      {children && <p>{children}</p>}
+      {action}
+    </div>
+  );
 }
 
 export function StatusBadge({ status }: { status: string }) {
@@ -94,7 +200,13 @@ export function PostureBar({ nodes }: { nodes: ImpactedNode[] }) {
 }
 
 export function ControlTable({ nodes, onSelect }: { nodes: ImpactedNode[]; onSelect: (n: ImpactedNode) => void }) {
-  if (!nodes.length) return <div className="empty">No controls match your search. Clear the filter to see all controls.</div>;
+  if (!nodes.length) {
+    return (
+      <EmptyState icon="search" title="No controls match your search">
+        Clear the search or choose a different status to see every control.
+      </EmptyState>
+    );
+  }
   return (
     <div className="table-wrap">
       <table className="table">
@@ -112,19 +224,41 @@ export function ControlTable({ nodes, onSelect }: { nodes: ImpactedNode[]; onSel
           {nodes.map((n) => (
             <tr key={n.control_id} onClick={() => onSelect(n)}>
               <td>
-                <button type="button" className="row-link" onClick={(e) => { e.stopPropagation(); onSelect(n); }}>
+                <button
+                  type="button"
+                  className="row-link"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect(n);
+                  }}
+                >
                   {n.control_title}
                 </button>
                 <span className="code">{n.control_code}</span>
               </td>
               <td>
-                <span className="code plain">{n.policy_code}</span>
+                <span className="code-chip">{n.policy_code}</span>
               </td>
               <td>
-                {n.owner_name}
-                <span className="sub">{n.department}</span>
+                <div className="person">
+                  <Avatar name={n.owner_name} />
+                  <div>
+                    <span className="person-name">{n.owner_name}</span>
+                    <span className="sub">{n.department}</span>
+                  </div>
+                </div>
               </td>
-              <td>{n.affected_systems.join(', ') || '—'}</td>
+              <td>
+                {n.affected_systems.length ? (
+                  <div className="chips">
+                    {n.affected_systems.map((s) => (
+                      <span key={s}>{s}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="none">None mapped</span>
+                )}
+              </td>
               <td className="num">
                 {n.evidence_count}
                 {n.stale_evidence_count > 0 && <span className="stale-note">{n.stale_evidence_count} stale</span>}
@@ -150,7 +284,11 @@ export function TaskTable({
   full?: boolean;
 }) {
   if (!tasks.length) {
-    return <div className="empty">No remediation tasks yet. Publish an amendment and tasks are created for every affected control.</div>;
+    return (
+      <EmptyState icon="remediation" title="No remediation tasks yet">
+        Publish an amendment and a task is created for every affected control.
+      </EmptyState>
+    );
   }
   return (
     <ul className="tasks">
@@ -160,13 +298,15 @@ export function TaskTable({
           <li key={t.id} className={`task ${t.status === 'CLOSED' ? 'closed' : ''}`}>
             <div className="task-main">
               <b>{t.control_title}</b>
-              <span className="sub">
-                <span className="code plain">{t.control_code}</span> · {t.clause_number} · {t.assignee_name}
+              <span className="meta">
+                <span className="code-chip">{t.control_code}</span>
+                <span>{t.clause_number}</span>
+                <span>{t.assignee_name}</span>
               </span>
               {full && t.notes && <p>{t.notes}</p>}
             </div>
             <div className={`task-due ${late ? 'late' : ''}`}>
-              {late && <Icon name="alert" />}
+              {late && <Icon name="alert" size={14} />}
               <span>
                 {late ? 'Overdue since ' : 'Due '}
                 {formatDate(t.due_date)}
@@ -204,8 +344,11 @@ export function EvidenceList({
           <li key={e.id} className={stale ? 'stale' : ''}>
             <div>
               <b>{e.title}</b>
-              <span className="sub">
-                {formatDateTime(e.uploaded_at)} · <span className="code plain" title={e.sha256_hash}>{e.sha256_hash.slice(0, 12)}…</span>
+              <span className="meta">
+                <span>{formatDateTime(e.uploaded_at)}</span>
+                <span className="code-chip" title={e.sha256_hash}>
+                  {e.sha256_hash.slice(0, 12)}…
+                </span>
               </span>
               <span className={`pill ${stale ? 'stale' : 'valid'}`}>{stale ? 'Stale: needs review' : 'Valid'}</span>
             </div>
@@ -223,7 +366,11 @@ export function EvidenceList({
 
 export function HistoryList({ changes }: { changes: Change[] }) {
   if (!changes.length) {
-    return <div className="empty">No amendments yet. Publish one from the Overview tab and it will be recorded here.</div>;
+    return (
+      <EmptyState icon="history" title="No amendments yet">
+        Publish one from the Overview tab and it will be recorded here.
+      </EmptyState>
+    );
   }
   return (
     <ol className="history">
@@ -239,7 +386,7 @@ export function HistoryList({ changes }: { changes: Change[] }) {
               </div>
               <div className="history-progress" aria-label={`${c.tasks_closed} of ${c.tasks_total} tasks closed`}>
                 <span>
-                  {c.tasks_closed}/{c.tasks_total} tasks closed
+                  {c.tasks_closed} of {c.tasks_total} tasks closed
                 </span>
                 <div className="meter">
                   <i style={{ width: `${pct}%` }} />
@@ -248,11 +395,17 @@ export function HistoryList({ changes }: { changes: Change[] }) {
             </div>
             <div className="diff">
               <div className="diff-col before">
-                <h4>Before</h4>
+                <h4>
+                  <i />
+                  Before
+                </h4>
                 <blockquote>{c.previous_content}</blockquote>
               </div>
               <div className="diff-col after">
-                <h4>After</h4>
+                <h4>
+                  <i />
+                  After
+                </h4>
                 <blockquote>{c.new_content}</blockquote>
               </div>
             </div>

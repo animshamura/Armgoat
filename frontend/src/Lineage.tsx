@@ -1,12 +1,15 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Clause, ImpactedNode } from './types';
 import { STATUS_LABEL } from './types';
+import { EmptyState } from './components';
 
 interface Edge {
   key: string;
   d: string;
   controls: string[];
   tone: string;
+  /** 1 = clause to policy, 2 = policy to control, 3 = control to system. Drives the draw-in order. */
+  stage: 1 | 2 | 3;
 }
 
 /**
@@ -68,17 +71,17 @@ export default function Lineage({
       policies.forEach((p) => {
         const a = pt('clause', 'r');
         const b = pt(`p:${p.code}`, 'l');
-        if (a && b) next.push({ key: `c-${p.code}`, d: curve(a, b), controls: p.controls, tone: 'neutral' });
+        if (a && b) next.push({ key: `c-${p.code}`, d: curve(a, b), controls: p.controls, tone: 'neutral', stage: 1 });
       });
       nodes.forEach((n) => {
         const tone = n.compliance_status.toLowerCase();
         const a = pt(`p:${n.policy_code}`, 'r');
         const b = pt(`k:${n.control_id}`, 'l');
-        if (a && b) next.push({ key: `p-${n.control_id}`, d: curve(a, b), controls: [n.control_id], tone });
+        if (a && b) next.push({ key: `p-${n.control_id}`, d: curve(a, b), controls: [n.control_id], tone, stage: 2 });
         n.affected_systems.forEach((s) => {
           const c = pt(`k:${n.control_id}`, 'r');
           const d = pt(`s:${s}`, 'l');
-          if (c && d) next.push({ key: `s-${n.control_id}-${s}`, d: curve(c, d), controls: [n.control_id], tone });
+          if (c && d) next.push({ key: `s-${n.control_id}-${s}`, d: curve(c, d), controls: [n.control_id], tone, stage: 3 });
         });
       });
       setEdges(next);
@@ -91,16 +94,26 @@ export default function Lineage({
   }, [nodes, policies, systems]);
 
   if (!nodes.length) {
-    return <div className="empty">No controls are mapped to this clause yet.</div>;
+    return (
+      <EmptyState icon="controls" title="No controls are mapped to this clause">
+        Map controls to a policy that implements this clause and they will appear in the trace.
+      </EmptyState>
+    );
   }
 
   return (
     <div className="lineage-scroll">
       <div className="lineage-heads" aria-hidden="true">
         <span>Regulation</span>
-        <span>Policies</span>
-        <span>Controls</span>
-        <span>Systems</span>
+        <span>
+          Policies <b>{policies.length}</b>
+        </span>
+        <span>
+          Controls <b>{nodes.length}</b>
+        </span>
+        <span>
+          Systems <b>{systems.length}</b>
+        </span>
       </div>
       <div className="lineage" ref={wrap} onMouseLeave={() => setFocus(null)}>
         <svg className="lineage-links" width={size.w} height={size.h} aria-hidden="true">
@@ -108,7 +121,8 @@ export default function Lineage({
             <path
               key={e.key}
               d={e.d}
-              className={`link ${e.tone} ${focus && !e.controls.includes(focus) ? 'dim' : ''} ${
+              pathLength={1}
+              className={`link ${e.tone} s${e.stage} ${focus && !e.controls.includes(focus) ? 'dim' : ''} ${
                 focus && e.controls.includes(focus) ? 'lit' : ''
               }`}
             />
@@ -119,7 +133,7 @@ export default function Lineage({
           <div className="lnode clause-node" ref={setRef('clause')}>
             <span className="lnode-code">{clause.clause_number}</span>
             <span className="lnode-title">{clause.title}</span>
-            <span className="lnode-sub">{clause.regulation}</span>
+            <span className="lnode-sub">{clause.regulation_code}</span>
           </div>
         </div>
 
@@ -147,8 +161,10 @@ export default function Lineage({
               <span className="lnode-code">{n.control_code}</span>
               <span className="lnode-title">{n.control_title}</span>
               <span className="lnode-sub">
-                {STATUS_LABEL[n.compliance_status]} · {n.owner_name}
+                <i className="dot" />
+                {STATUS_LABEL[n.compliance_status]}
               </span>
+              <span className="lnode-owner">{n.owner_name}</span>
             </button>
           ))}
         </div>

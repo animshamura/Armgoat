@@ -18,7 +18,8 @@ export interface ImpactedNode {
 
 export interface Clause {
   id: string;
-  regulation: string;
+  regulation_code: string;
+  regulation_name: string;
   clause_number: string;
   title: string;
   content: string;
